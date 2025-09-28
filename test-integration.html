@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M-ai Story - API Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 10px 0; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; }
+        img { max-width: 100%; height: auto; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>M-ai Story API Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Image Generation</h2>
+        <p>This will test the image generation API integration.</p>
+        
+        <textarea id="test-prompt" placeholder="Enter a prompt for image generation...">A cute cat playing with a ball</textarea>
+        <br>
+        <button id="test-button" onclick="testImageGeneration()">Test Image Generation</button>
+        
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        async function testImageGeneration() {
+            const button = document.getElementById('test-button');
+            const results = document.getElementById('test-results');
+            const prompt = document.getElementById('test-prompt').value;
+            
+            button.disabled = true;
+            button.textContent = 'Testing...';
+            results.innerHTML = '<div class="test-section loading">Testing image generation...</div>';
+            
+            try {
+                const response = await fetch('/api/generate-image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.imageBase64) {
+                    results.innerHTML = `
+                        <div class="test-section success">
+                            <h3>✅ Success!</h3>
+                            <p>Image generated successfully!</p>
+                            <p><strong>Prompt:</strong> ${data.prompt}</p>
+                            <p><strong>MIME Type:</strong> ${data.mimeType}</p>
+                            <img src="data:${data.mimeType};base64,${data.imageBase64}" alt="Generated image" />
+                        </div>
+                    `;
+                } else {
+                    throw new Error('No image data received');
+                }
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="test-section error">
+                        <h3>❌ Error</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p>Make sure the server is running on port 4000.</p>
+                    </div>
+                `;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Test Image Generation';
+            }
+        }
+        
+        // Auto-test on page load
+        window.addEventListener('load', () => {
+            console.log('Test page loaded. Click the button to test image generation.');
+        });
+    </script>
+</body>
+</html>

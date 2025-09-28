@@ -1,0 +1,25 @@
+{
+  "name": "m-ai-story",
+  "version": "1.0.0",
+  "description": "",
+  "main": "image-demo.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MElearns2code/M-ai-Story.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/MElearns2code/M-ai-Story/issues"
+  },
+  "homepage": "https://github.com/MElearns2code/M-ai-Story#readme",
+  "dependencies": {
+    "@google/genai": "^1.21.0"
+  }
+}

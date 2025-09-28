@@ -2,6 +2,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { URL } = require('node:url');
+const { GoogleGenAI } = require('@google/genai');
 
 const __dirnameSafe = __dirname;
 const envPath = path.join(__dirnameSafe, '.env');
@@ -32,8 +33,9 @@ if (!API_KEY) {
 
 const PORT = Number(process.env.PORT) || 4000;
 const HOST = process.env.HOST || '127.0.0.1';
-const MODEL = 'gemini-2.5-flash-image-preview';
-const GOOGLE_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+
+// Initialize Google GenAI
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -51,6 +53,9 @@ const sendJson = (res, statusCode, data) => {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-goog-api-key',
+    'Access-Control-Max-Age': '86400',
     'Cache-Control': 'no-store'
   });
   res.end(JSON.stringify(data));
@@ -100,33 +105,16 @@ const handleGenerateRequest = async (req, res) => {
     }
 
     try {
-      const response = await fetch(GOOGLE_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': API_KEY
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                { text: prompt }
-              ]
-            }
-          ]
-        })
+      console.log('Generating image for prompt:', prompt);
+      
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-image-preview",
+        contents: prompt,
       });
 
-      const result = await response.json();
+      console.log('Google API Response received');
 
-      if (!response.ok) {
-        const message = result?.error?.message || 'Generation failed';
-        sendJson(res, response.status, { error: message });
-        return;
-      }
-
-      const candidates = result?.candidates || [];
+      const candidates = response.candidates || [];
       let inlineData;
 
       for (const candidate of candidates) {
@@ -138,10 +126,12 @@ const handleGenerateRequest = async (req, res) => {
       }
 
       if (!inlineData?.data) {
+        console.log('No image content found in response');
         sendJson(res, 502, { error: 'No image content returned' });
         return;
       }
 
+      console.log('Image generated successfully');
       sendJson(res, 200, {
         imageBase64: inlineData.data,
         mimeType: inlineData.mimeType || 'image/png',
@@ -149,18 +139,19 @@ const handleGenerateRequest = async (req, res) => {
       });
     } catch (error) {
       console.error('Image generation error:', error);
-      sendJson(res, 500, { error: 'Unexpected server error' });
+      sendJson(res, 500, { error: 'Unexpected server error: ' + error.message });
     }
   });
 };
 
 const server = http.createServer((req, res) => {
-  // Basic CORS / preflight support
+  // Enhanced CORS / preflight support
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-goog-api-key',
+      'Access-Control-Max-Age': '86400'
     });
     res.end();
     return;
