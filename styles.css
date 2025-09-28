@@ -339,6 +339,30 @@ img {
     color: var(--color-muted);
 }
 
+.hero-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+}
+
+.preview-image {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+}
+
+.feature-image {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    margin: 0.8rem 0;
+}
+
 .floating-bubble {
     position: absolute;
     border-radius: 50%;
