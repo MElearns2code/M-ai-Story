@@ -14,6 +14,7 @@
             <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button>
             <div class="nav-links" id="nav-links">
                 <a href="#features">Why families love it</a>
+                <a href="#image-lab">Try the art</a>
                 <a href="#journey">How it works</a>
                 <a href="#download" class="nav-cta">Download</a>
             </div>
@@ -141,6 +142,40 @@
             </div>
         </section>
 
+        <section id="image-lab" class="image-lab" aria-labelledby="image-lab-title">
+            <div class="container image-lab-inner">
+                <div class="image-lab-copy">
+                    <span class="image-lab-badge">New · Nano Banana art preview</span>
+                    <h2 id="image-lab-title">Test-drive a Gemini illustration</h2>
+                    <p>Type in a scene and let our Nano Banana-powered studio sketch it in seconds. Each generation uses the same gentle palette you&apos;ll find inside the app.</p>
+                    <ul class="image-lab-tips">
+                        <li>Include the hero of your story (names, pets, or favourite places).</li>
+                        <li>Describe the mood—calming sunset, magical forest, or silly giggles.</li>
+                        <li>Keep it kind and family-friendly for the best results.</li>
+                    </ul>
+                </div>
+                <div class="image-lab-demo" data-image-lab>
+                    <form class="image-lab-form" aria-label="Generate a bedtime illustration">
+                        <label class="image-lab-label" for="image-prompt">Describe the scene you&apos;d like to see</label>
+                        <textarea id="image-prompt" name="prompt" placeholder="A cosy reading nook where Maya and her grandpa read about glowing fireflies" required minlength="10"></textarea>
+                        <div class="image-lab-actions">
+                            <button type="submit" class="btn-primary">Create illustration</button>
+                            <button type="button" class="btn-ghost" data-image-lab-random>Try a surprise prompt</button>
+                        </div>
+                        <p class="image-lab-note">The illustration appears below. We keep prompts private and only use them to generate your preview.</p>
+                    </form>
+                    <div class="image-lab-result" role="status" aria-live="polite">
+                        <div class="image-lab-preview" data-image-lab-preview>
+                            <div class="image-lab-placeholder">
+                                <p>Ready when you are—your artwork will display here.</p>
+                            </div>
+                        </div>
+                        <p class="image-lab-message" data-image-lab-message hidden></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section class="voices" aria-labelledby="voices-title">
             <div class="container">
                 <h2 id="voices-title">Families are feeling the magic</h2>
@@ -192,6 +227,7 @@
                 <div>
                     <h4>Explore</h4>
                     <a href="#features">Features</a>
+                    <a href="#image-lab">Create an image</a>
                     <a href="#journey">How it works</a>
                     <a href="#download">Download</a>
                 </div>
@@ -206,6 +242,7 @@
         </div>
     </footer>
 
+    <script type="module" src="image-demo.js"></script>
     <script>
         const navToggle = document.querySelector('.nav-toggle');
         const navLinks = document.getElementById('nav-links');
