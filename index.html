@@ -154,7 +154,12 @@
                         <li>Keep it kind and family-friendly for the best results.</li>
                     </ul>
                 </div>
-                <div class="image-lab-demo" data-image-lab>
+                <div
+                    class="image-lab-demo"
+                    data-image-lab
+                    data-api="/api/generate-image"
+                    data-api-fallback="http://127.0.0.1:4000/api/generate-image"
+                >
                     <form class="image-lab-form" aria-label="Generate a bedtime illustration">
                         <label class="image-lab-label" for="image-prompt">Describe the scene you&apos;d like to see</label>
                         <textarea id="image-prompt" name="prompt" placeholder="A cosy reading nook where Maya and her grandpa read about glowing fireflies" required minlength="10"></textarea>

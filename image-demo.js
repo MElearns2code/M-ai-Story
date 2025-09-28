@@ -7,6 +7,9 @@ if (labRoot) {
   const messageEl = labRoot.querySelector('[data-image-lab-message]');
   const randomBtn = labRoot.querySelector('[data-image-lab-random]');
   const submitBtn = form?.querySelector('button[type="submit"]');
+  const defaultEndpoint = labRoot.dataset.api || '/api/generate-image';
+  const fallbackEndpoint = labRoot.dataset.apiFallback || 'http://127.0.0.1:4000/api/generate-image';
+  let activeEndpoint = defaultEndpoint;
 
   const samplePrompts = [
     'Maya and her grandpa reading under a glowing blanket fort filled with fireflies',
@@ -88,6 +91,13 @@ if (labRoot) {
     if (isLoading) {
       renderLoading();
       setMessage('Creating your illustration with Nano Banana…', 'info');
+    } else {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+      }
+      if (randomBtn) {
+        randomBtn.disabled = false;
+      }
     }
   };
 
@@ -112,6 +122,69 @@ if (labRoot) {
     });
   }
 
+  const parseJsonResponse = async (response) => {
+    const contentType = response.headers.get('content-type') || '';
+    const looksJson = contentType.includes('application/json');
+    const payload = looksJson ? await response.json() : await response.text();
+    return { payload, looksJson };
+  };
+
+  const requestImage = async (endpoint, prompt) => {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ prompt })
+    });
+
+    const { payload, looksJson } = await parseJsonResponse(response);
+
+    if (!response.ok) {
+      const detail = looksJson && payload?.error ? String(payload.error) : `Request failed (${response.status})`;
+      const error = new Error(detail);
+      error.status = response.status;
+      error.endpoint = endpoint;
+      error.payload = payload;
+      throw error;
+    }
+
+    if (!looksJson) {
+      const error = new Error('Unexpected response from the image service.');
+      error.endpoint = endpoint;
+      error.payload = payload;
+      throw error;
+    }
+
+    return payload;
+  };
+
+  const requestWithFallback = async (prompt) => {
+    const endpoints = [activeEndpoint];
+
+    if (!endpoints.includes(defaultEndpoint)) {
+      endpoints.push(defaultEndpoint);
+    }
+
+    if (fallbackEndpoint && !endpoints.includes(fallbackEndpoint)) {
+      endpoints.push(fallbackEndpoint);
+    }
+
+    let lastError;
+
+    for (const endpoint of endpoints) {
+      try {
+        const payload = await requestImage(endpoint, prompt);
+        activeEndpoint = endpoint;
+        return payload;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError || new Error('Image service unavailable.');
+  };
+
   if (form && promptField) {
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -125,22 +198,7 @@ if (labRoot) {
       setLoading(true);
 
       try {
-        const response = await fetch('/api/generate-image', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ prompt })
-        });
-
-        const payload = await response.json();
-
-        if (!response.ok) {
-          const detail = payload?.error || 'Unable to generate an image right now.';
-          setMessage(detail, 'error');
-          renderPlaceholder();
-          return;
-        }
+        const payload = await requestWithFallback(prompt);
 
         const { imageBase64, mimeType } = payload;
         if (!imageBase64) {
@@ -155,7 +213,14 @@ if (labRoot) {
         setMessage('Illustration ready! Save the image or try another idea.', 'success');
       } catch (error) {
         console.error('Image generation request failed', error);
-        setMessage('Something went wrong while reaching the image service.', 'error');
+        if (error?.status === 404) {
+          setMessage('Image service not found. Make sure the Gemini proxy server is running (node server.js).', 'error');
+        } else if (error?.status === 401 || error?.status === 403) {
+          setMessage('Authentication failed. Confirm the API key in your server configuration.', 'error');
+        } else {
+          const detail = error?.message || 'Something went wrong while reaching the image service.';
+          setMessage(detail, 'error');
+        }
         renderPlaceholder();
       } finally {
         setLoading(false);
