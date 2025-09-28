@@ -1,3 +1,11 @@
+@font-face {
+    font-family: 'Itim';
+    src: url('Itim/Itim-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
     --color-sky: #cfe9ff;
     --color-sky-light: #e9f6ff;
@@ -25,7 +33,7 @@
 }
 
 body {
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Itim', 'Fredoka', sans-serif;
     background: linear-gradient(180deg, var(--color-sky-light) 0%, var(--color-sand) 100%);
     color: var(--color-text);
     line-height: 1.6;
@@ -114,7 +122,7 @@ img {
 .btn-ghost {
     border: none;
     border-radius: 999px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Itim', 'Fredoka', sans-serif;
     font-weight: 600;
     font-size: 1rem;
     padding: 0.9rem 1.8rem;
@@ -620,7 +628,7 @@ img {
     padding: 1rem;
     border-radius: var(--radius-md);
     border: 1px solid rgba(39, 65, 86, 0.15);
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Itim', 'Fredoka', sans-serif;
     font-size: 1rem;
     resize: vertical;
     background: rgba(248, 252, 255, 0.9);
