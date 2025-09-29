@@ -2,7 +2,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { URL } = require('node:url');
-const { GoogleGenAI } = require('@google/genai');
+const { sendJson, sendOptions } = require('./lib/http');
 
 const __dirnameSafe = __dirname;
 const envPath = path.join(__dirnameSafe, '.env');
@@ -26,16 +26,14 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const API_KEY = process.env.GOOGLE_GENAI_API_KEY;
-if (!API_KEY) {
+if (!process.env.GOOGLE_GENAI_API_KEY) {
   console.warn('Warning: GOOGLE_GENAI_API_KEY is not set. Image generation requests will fail.');
 }
 
 const PORT = Number(process.env.PORT) || 4000;
 const HOST = process.env.HOST || '127.0.0.1';
 
-// Initialize Google GenAI
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+const generateImageHandler = require('./api/generate-image');
 
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -49,18 +47,6 @@ const mimeTypes = {
   '.webp': 'image/webp'
 };
 
-const sendJson = (res, statusCode, data) => {
-  res.writeHead(statusCode, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-goog-api-key',
-    'Access-Control-Max-Age': '86400',
-    'Cache-Control': 'no-store'
-  });
-  res.end(JSON.stringify(data));
-};
-
 const normalizePath = (unsafePath) => {
   const safePath = path.normalize(unsafePath).replace(/^\/+/, '');
   if (safePath.includes('..')) {
@@ -69,98 +55,22 @@ const normalizePath = (unsafePath) => {
   return safePath;
 };
 
-const handleGenerateRequest = async (req, res) => {
-  if (req.method !== 'POST') {
-    sendJson(res, 405, { error: 'Method Not Allowed' });
-    return;
-  }
-
-  let body = '';
-  req.on('data', (chunk) => {
-    body += chunk;
-    if (body.length > 1_000_000) {
-      req.pause();
-      sendJson(res, 413, { error: 'Payload too large' });
-    }
-  });
-
-  req.on('end', async () => {
-    let prompt = '';
-    try {
-      const parsed = JSON.parse(body || '{}');
-      prompt = typeof parsed.prompt === 'string' ? parsed.prompt.trim() : '';
-    } catch (error) {
-      sendJson(res, 400, { error: 'Invalid JSON payload' });
-      return;
-    }
-
-    if (!prompt) {
-      sendJson(res, 422, { error: 'Prompt is required' });
-      return;
-    }
-
-    if (!API_KEY) {
-      sendJson(res, 500, { error: 'Server missing configuration' });
-      return;
-    }
-
-    try {
-      console.log('Generating image for prompt:', prompt);
-      
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-image-preview",
-        contents: prompt,
-      });
-
-      console.log('Google API Response received');
-
-      const candidates = response.candidates || [];
-      let inlineData;
-
-      for (const candidate of candidates) {
-        const parts = candidate?.content?.parts || [];
-        inlineData = parts.find((part) => part?.inlineData)?.inlineData;
-        if (inlineData) {
-          break;
-        }
-      }
-
-      if (!inlineData?.data) {
-        console.log('No image content found in response');
-        sendJson(res, 502, { error: 'No image content returned' });
-        return;
-      }
-
-      console.log('Image generated successfully');
-      sendJson(res, 200, {
-        imageBase64: inlineData.data,
-        mimeType: inlineData.mimeType || 'image/png',
-        prompt
-      });
-    } catch (error) {
-      console.error('Image generation error:', error);
-      sendJson(res, 500, { error: 'Unexpected server error: ' + error.message });
-    }
-  });
-};
-
 const server = http.createServer((req, res) => {
   // Enhanced CORS / preflight support
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-goog-api-key',
-      'Access-Control-Max-Age': '86400'
-    });
-    res.end();
+    sendOptions(res);
     return;
   }
 
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   if (url.pathname === '/api/generate-image') {
-    handleGenerateRequest(req, res);
+    Promise.resolve(generateImageHandler(req, res)).catch((error) => {
+      console.error('Image generation error:', error);
+      if (!res.headersSent) {
+        sendJson(res, 500, { error: 'Unexpected server error: ' + error.message });
+      }
+    });
     return;
   }
 
